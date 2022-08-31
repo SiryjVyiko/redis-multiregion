@@ -1,0 +1,170 @@
+type: install
+jpsVersion: '1.8.1'
+name: Multi-Region Redis Cluster
+id: redis-cluster-multiregions
+categories:
+  - apps/clusters
+logo: /images/redis-multiregion-logo.png
+description: 
+  text: Highly-available and reliable Redis cluster setup with automatic multi-region distribution
+  short: Enterprise-grade Redis Cluster with automatic distribution across several regions
+baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/redis-multiregion/master
+
+onBeforeInit: scripts/onBeforeInit.js
+
+globals: 
+  password: ${fn.password(10)}
+
+settings:
+  main:
+    fields:
+      - caption: Version
+        name: nodeType
+        type: list    
+        values: 
+          - value: redis7
+            caption: Redis 7
+          - value: redis6
+            caption: Redis 6
+        default: redis7
+      - caption: Environment
+        type: envname
+        name: envName
+        dependsOn: region
+        randomName: true
+        showFullDomain: false
+        required: true
+      - type: checkbox
+        caption: "Create separate environment group"
+        name: envGroupEnabled
+        value: true
+      - caption: Regions
+        type: regionlist
+        name: regions
+        disableInactive: true
+        selectFirstAvailable: false
+        multiSelect: true
+        min: 2
+        max: 5
+        filter:
+          isActive: true
+        tooltip: Select the destination regions for Redis nodes. The first selected region will host the primary node of cluster, so this region should have the highest performance. Other regions will host the secondary nodes. 3 nodes will be created for each environment.
+
+actions:
+  initGlobals:
+    - script: |
+        var regions = '${settings.regions}'.split(','),
+            envGroups = eval('(' + MANIFEST + ')').envGroups, index,
+            onAfterReturn = { setGlobals: {} }, 
+            glbs = onAfterReturn.setGlobals,
+            resp, domain;
+        resp = jelastic.env.control.GetRegions(appid, session);
+        if (resp.result != 0) return resp;
+        resp = resp.array;
+        for (var i = 0, n = regions.length; i < n; i ++) {
+          index = i + 1;
+          glbs["region-" + index] = regions[i];
+          for (var a = 0, b = resp.length; a < b; a++) {
+            for (var k = 0, l = resp[a].hardNodeGroups.length; k < l; k++) {
+              if (resp[a].hardNodeGroups[k].uniqueName == regions[i])
+                glbs["domain-" + index] = resp[a].domain;
+            }
+          }
+          if (index == 1) {
+            glbs["displayName-" + index] = "Redis Cluster Primary";
+            glbs["initial_env_master-" + index] = "true";
+          } else {
+            glbs["displayName-" + index] = "Redis Cluster Secondary " + i;
+            glbs["initial_env_master-" + index] = "false";
+          }
+        }
+        glbs["envGroups"] = envGroups;
+        glbs["regionsCount"] = regions.length;
+        glbs["master_env_name"] = "${settings.envName}-1";
+        return { result: 0, onAfterReturn: onAfterReturn };
+
+  createEnvs:
+  - script: |
+      var regions = '${settings.regions}'.split(','), actions = [];
+      var envGroups = eval('(' + MANIFEST + ')').envGroups;
+      for (var cluster = 1, n = regions.length + 1; cluster < n; cluster ++) {
+        actions.push({
+          jps: "${baseUrl}/scripts/redis.jps?_r=${fn.random}",
+          envName: "${settings.envName}-" + cluster,
+          loggerName: "${settings.envName}-" + cluster,
+          envGroups: envGroups,
+          displayName: "${globals.displayName-" + cluster + "}",
+          region: "${globals.region-" + cluster + "}",
+          settings: {
+            nodeType: "${settings.nodeType}",
+            password: "${globals.password}",
+            regions: "${settings.regions}",
+            mainEnvName: "${settings.envName}"
+          }
+        });
+      }
+      return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
+
+  installClusterLogic:
+    - install: ${baseUrl}/addons/auto-cluster.yaml
+      envName: ${settings.envName}-1
+      settings:
+        regions: ${settings.regions}
+        mainEnvName: ${settings.envName}
+        masterAddress: ${globals.master_address_sqldb-1}
+
+  attachNodeGroups:
+    - script: |
+        var postgresEnvGroup = 'Redis cluster ' + '${settings.envName}';
+        var postgresEnvs = '${globals.DBEnvs}';
+        var targetEnvGroups = eval('(' + MANIFEST + ')').envGroups;
+        if (!Array.isArray(targetEnvGroups)) {
+            targetEnvGroupsString = targetEnvGroups.toString();
+            targetEnvGroups = [];
+            if(targetEnvGroupsString.length != 0) {
+                targetEnvGroups.push(targetEnvGroupsString);
+            }
+        }
+        targetEnvGroups.push(postgresEnvGroup);
+        var DBEnvs = '${globals.DBEnvs}'.split(',');
+        for (var i = 0, n = DBEnvs.length; i < n; i ++) {
+            resp = jelastic.env.control.AttachEnvGroup({
+              envName  : DBEnvs[i],
+              session  : session,
+              envGroups: targetEnvGroups
+            });
+            if (resp.result != 0) { return resp; }
+        }
+        return { result: 0 }
+
+onInstall:
+  - initGlobals
+  - setGlobals:
+      domain: ${settings.envName}-1.${globals.domain-1}
+  - createEnvs
+  - script: ${baseUrl}/scripts/getClusterEnvs.js
+    envName: ${settings.envName}-1
+  - setGlobals:
+      DBEnvs: ${response.items.join(,)} 
+  - if ('${settings.envGroupEnabled}' == 'true'):
+    - attachNodeGroups
+  - script: |-
+      var onAfterReturn = { setGlobals: {} }, pgsqlEnvs = [], glbs = onAfterReturn.setGlobals;
+      var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-1', session);
+      var ipCmd = "ip a | grep -A1 venet0 | grep inet | awk '{print $2}'| sed 's|\/[0-9]*||g' | head -n 2|tail -n 1";
+      if (resp.result != 0) { return resp; } else { pgsqlEnvs.push(resp.env.shortdomain); }
+      for (var i = 0, k = resp.nodes; i < k.length; i++) {
+          if (k[i].nodeGroup == 'sqldb') {
+              if( k[i].ismaster ) {
+                  glbs["master_id_sqldb-1"] = k[i].id;
+                  glbs["master_address_sqldb-1"] = k[i].address;
+              }
+          }
+      }
+      return { result: 0, onAfterReturn: onAfterReturn };
+  - installClusterLogic
+
+startPage: ${nodes.sqldb.master.url}
+success:
+  email: /text/success.md?_r=${fn.random}
+  text: /text/success.md?_r=${fn.random}
