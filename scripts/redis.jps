@@ -3,7 +3,7 @@ version: 1.7
 id: postgres-node
 name: Redis Nodes 
 
-baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/redis-multiregion/master
+baseUrl: https://raw.githubusercontent.com/SiryjVyiko//redis-multiregion/master
 
 globals:
   vpnAppid: ${settings.vpnAppid}
