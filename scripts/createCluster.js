@@ -1,4 +1,4 @@
-var regions = '${settings.regions}'.split(','), masterNodesString = "", createClusterCommand = "", resp, envInfo,
+var regions = '${settings.regions}'.split(','), masterNodesString = "", createClusterCommand = "", resp, envInfo, announceIp,
     getAnnounceIpCommand = "cat /etc/redis.conf|grep ^cluster-announce-ip|tail -n 1|awk '{print $2}'",
     rebalanceCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli --cluster check 127.0.0.1:6379 || redis-cli --cluster fix 127.0.0.1:6379; redis-cli --cluster rebalance 127.0.0.1:6379"
     targetMasterIdCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli cluster nodes|grep myself|awk '{print $1}'";    
