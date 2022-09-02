@@ -14,7 +14,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
 }
 envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-1', session);
 if (envInfo.result != 0) { return envInfo; }
-createClusterCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli --cluster create  " + masterNodesString + " --cluster-replicas 1";
+createClusterCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli --cluster create  " + masterNodesString + " --cluster-replicas 0";
 resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-1', session, envInfo.nodes[0].id, toJSON([{"command": createClusterCommand, "params": ""}]), false, "root");
 if (resp.result != 0) { return resp; }    
 
