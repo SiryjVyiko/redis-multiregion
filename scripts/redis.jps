@@ -46,15 +46,16 @@ onInstall:
         settings:
           vpnAppid: ${globals.vpnAppid}
   - cmd[nosqldb]:
-      sed -i 's/^loglevel notice/loglevel warning/' /etc/redis.conf;
+      sed -ci -e 's/^loglevel notice/loglevel warning/' /etc/redis.conf;
       jem passwd set -p ${settings.password};
       echo -e "cluster-enabled yes\ncluster-config-file nodes.conf\ncluster-node-timeout 5000\nappendonly yes\nmasterauth ${settings.password}" >> /etc/redis.conf;
       jem service restart;
     user: root
   - forEach(nodes.nosqldb):
     - cmd[${@i.id}]:
-        sed -i '/^cluster-announce-ip/d' /etc/redis.conf;
+        sed -ci -e '/^cluster-announce-ip/d' /etc/redis.conf;
         echo "cluster-announce-ip $(ip a | grep -A1 venet0 | grep inet | awk '{print $2}'| sed 's/\/[0-9]*//g' | head -n 2|tail -n 1)" >> /etc/redis.conf;
+      user: root
 
 actions:
   setPasswordAcrossRegions:
