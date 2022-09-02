@@ -16,11 +16,4 @@ envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-1', session);
 if (envInfo.result != 0) { return envInfo; }
 createClusterCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); yes yes | redis-cli --cluster create  " + masterNodesString + " --cluster-replicas 0";
 resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-1', session, envInfo.nodes[0].id, toJSON([{"command": createClusterCommand, "params": ""}]), false, "root");
-if (resp.result != 0) { return resp; }    
-
-resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-1', session, envInfo.nodes[0].id, toJSON([{"command": rebalanceCommand, "params": ""}]), false, "root");
-if (resp.result != 0) { return resp; }    
-
-return {
-    result: 0
-};
+return resp; 
