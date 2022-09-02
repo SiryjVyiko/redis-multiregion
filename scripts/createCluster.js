@@ -12,7 +12,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     announceIp = resp.responses[0].out
     masterNodesString = masterNodesString + announceIp + ":6379 "
 }
-envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-1' + cluster, session);
+envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-1', session);
 if (envInfo.result != 0) { return envInfo; }
 createClusterCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli --cluster create  " + masterNodesString + " --cluster-replicas 1";
 resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-1', session, envInfo.nodes[0].id, toJSON([{"command": createClusterCommand, "params": ""}]), false, "root");
