@@ -2,7 +2,7 @@ type: update
 jpsVersion: 1.8.1
 name: Redis multi region cluster logic
 decription: Redis multi region cluster autoscaling logic
-baseUrl: https://raw.githubusercontent.com/DmytroZubelevych/redis-multiregion/master
+baseUrl: https://raw.githubusercontent.com/SiryjVyiko/redis-multiregion/master
 
 onInstall:
   - clusterInit
