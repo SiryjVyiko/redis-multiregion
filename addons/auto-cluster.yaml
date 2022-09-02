@@ -33,8 +33,7 @@ actions:
       sayYes: no
     - rebalanceCluster
     - cmd[nosqldb]: jem service start;
-    - forEach(nodes.nosqldb):
-        - script: ${baseUrl}/scripts/addReplicas.js
+    - script: ${baseUrl}/scripts/addReplicas.js
 
   getRedisPasswd:
     - cmd[${nodes.nosqldb.master.id}]: cat /etc/redis.conf |grep ^requirepass|awk '{print $2}'
