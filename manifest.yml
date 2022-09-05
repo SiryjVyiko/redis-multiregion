@@ -40,7 +40,7 @@ settings:
         value: true
       - type: radiolist
         caption: Topology
-        name: Topology
+        name: topology
         values:
           maxperf: Maximum performance
           maxrealia: Maximum reliability
