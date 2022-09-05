@@ -38,6 +38,12 @@ settings:
         caption: "Create separate environment group"
         name: envGroupEnabled
         value: true
+      - type: radiolist
+        caption: Topology
+        name: Topology
+        values:
+          maxperf: Maximum performance
+          maxrealia: Maximum reliability
       - caption: Regions
         type: regionlist
         name: regions
