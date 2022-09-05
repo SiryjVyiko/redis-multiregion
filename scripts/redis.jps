@@ -10,7 +10,7 @@ globals:
 
 nodes:
   cloudlets: 16
-  count: 2
+  count: 3
   scalingMode: STATELESS
   nodeType: ${settings.nodeType}
   nodeGroup: nosqldb
