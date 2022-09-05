@@ -35,9 +35,8 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     }
 }
 
-//the next code must be refactored if this POC is approved
-//loop for adding the firts slave
-for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
+for (var i = 1; i < 3; i++ ) {
+  for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
     if (envInfo.result != 0) {
         return envInfo;
@@ -47,7 +46,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     var targetMasterId = resp.responses[0].out;
     
     slave = cluster + 1;
-    if ( slave >= n ) {
+    if ( slave > 3 ) {
         slave = slave - 3;
     }
     
@@ -62,6 +61,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     
     resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[1].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
     if (resp.result != 0) { return resp; }
+  }
 }
 
 return {
