@@ -51,35 +51,16 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
         slave = slave - 3;
     }
     
-    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[1].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
+    slaveEnvInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + slave, session);
+    if (slaveEnvInfo.result != 0) {
+        return slaveEnvInfo;
+    }
+    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[1].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
     if (resp.result != 0) { return resp; }
     announceIp = resp.responses[0].out
     var replicateCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli -h " + announceIp + " cluster replicate " + targetMasterId;
     
-    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[1].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
-    if (resp.result != 0) { return resp; }
-}
-//loop for adding the second slave
-for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
-    envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
-    if (envInfo.result != 0) {
-        return envInfo;
-    }
-    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, envInfo.nodes[0].id, toJSON([{"command": targetMasterIdCommand, "params": ""}]), false, "root");
-    if (resp.result != 0) { return resp; }
-    var targetMasterId = resp.responses[0].out;
-    
-    slave = cluster + 2;
-    if ( slave >= n ) {
-        slave = slave - 3;
-    }
-    
-    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[2].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
-    if (resp.result != 0) { return resp; }
-    announceIp = resp.responses[0].out
-    var replicateCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli -h " + announceIp + " cluster replicate " + targetMasterId;
-    
-    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[2].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[1].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
     if (resp.result != 0) { return resp; }
 }
 
