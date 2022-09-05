@@ -45,7 +45,7 @@ for (var i = 1; i < 3; i++ ) {
     if (resp.result != 0) { return resp; }
     var targetMasterId = resp.responses[0].out;
     
-    slave = cluster + 1;
+    slave = cluster + i;
     if ( slave > 3 ) {
         slave = slave - 3;
     }
