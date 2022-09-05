@@ -35,8 +35,9 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     }
 }
 
-for (var i = 1; i < 3; i++ ) {
+//for (var i = 1; i < 3; i++ ) {
   for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
+    var i = 1;
     envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
     if (envInfo.result != 0) {
         return envInfo;
@@ -62,7 +63,7 @@ for (var i = 1; i < 3; i++ ) {
     resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[i].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
     if (resp.result != 0) { return resp; }
   }
-}
+//}
 
 return {
     result: 0
