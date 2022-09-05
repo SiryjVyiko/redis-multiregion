@@ -54,12 +54,12 @@ for (var i = 1; i < 3; i++ ) {
     if (slaveEnvInfo.result != 0) {
         return slaveEnvInfo;
     }
-    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[1].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
+    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[i].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
     if (resp.result != 0) { return resp; }
     announceIp = resp.responses[0].out
     var replicateCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli -h " + announceIp + " cluster replicate " + targetMasterId;
     
-    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[1].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[i].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
     if (resp.result != 0) { return resp; }
   }
 }
