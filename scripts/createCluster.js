@@ -7,6 +7,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     if (envInfo.result != 0) {
         return envInfo;
     }
+    envInfo.nodes.sort((node1, node2) => node1.id - node2.id);
     var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, envInfo.nodes[0].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
     if (resp.result != 0) { return resp; }
     announceIp = resp.responses[0].out
@@ -23,6 +24,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     if (resp.result != 0) {
         return resp;
     }
+    resp.nodes.sort((node1, node2) => node1.id - node2.id);
     for (var i = 1, k = resp.nodes; i < k.length; i++) {
         if (k[i].nodeGroup == 'nosqldb') {
             var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, k[i].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
@@ -35,13 +37,13 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     }
 }
 
-//for (var i = 1; i < 3; i++ ) {
+for (var i = 1; i < 3; i++ ) {
   for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
-    var i = 1;
     envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
     if (envInfo.result != 0) {
         return envInfo;
     }
+    envInfo.nodes.sort((node1, node2) => node1.id - node2.id);
     resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, envInfo.nodes[0].id, toJSON([{"command": targetMasterIdCommand, "params": ""}]), false, "root");
     if (resp.result != 0) { return resp; }
     var targetMasterId = resp.responses[0].out;
@@ -55,6 +57,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     if (slaveEnvInfo.result != 0) {
         return slaveEnvInfo;
     }
+    slaveEnvInfo.nodes.sort((node1, node2) => node1.id - node2.id);
     var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[i].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
     if (resp.result != 0) { return resp; }
     announceIp = resp.responses[0].out
@@ -63,7 +66,7 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, slaveEnvInfo.nodes[i].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
     if (resp.result != 0) { return resp; }
   }
-//}
+}
 
 return {
     result: 0
