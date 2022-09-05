@@ -1,4 +1,4 @@
-var regions = '${settings.regions}'.split(','), masterNodesString = "", createClusterCommand = "", resp, envInfo, announceIp,
+var regions = '${settings.regions}'.split(','), masterNodesString = "", createClusterCommand = "", resp, envInfo, announceIp, first
     getAnnounceIpCommand = "cat /etc/redis.conf|grep ^cluster-announce-ip|tail -n 1|awk '{print $2}'",
     rebalanceCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli --cluster check 127.0.0.1:6379 || redis-cli --cluster fix 127.0.0.1:6379; redis-cli --cluster rebalance 127.0.0.1:6379"
     targetMasterIdCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli cluster nodes|grep myself|awk '{print $1}'";    
@@ -18,8 +18,6 @@ createClusterCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requi
 resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-1', session, envInfo.nodes[0].id, toJSON([{"command": createClusterCommand, "params": ""}]), false, "root");
 if (resp.result != 0) { return resp; }
 
-
-
 for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     var resp = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
     if (resp.result != 0) {
@@ -37,8 +35,53 @@ for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
     }
 }
 
-
-
+//the next code must be refactored if this POC is approved
+//loop for adding the firts slave
+for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
+    envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
+    if (envInfo.result != 0) {
+        return envInfo;
+    }
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, envInfo.nodes[0].id, toJSON([{"command": targetMasterIdCommand, "params": ""}]), false, "root");
+    if (resp.result != 0) { return resp; }
+    var targetMasterId = resp.responses[0].out;
+    
+    slave = cluster + 1;
+    if ( slave >= n ) {
+        slave = slave - 3;
+    }
+    
+    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[1].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
+    if (resp.result != 0) { return resp; }
+    announceIp = resp.responses[0].out
+    var replicateCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli -h " + announceIp + " cluster replicate " + targetMasterId;
+    
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[1].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
+    if (resp.result != 0) { return resp; }
+}
+//loop for adding the second slave
+for (var cluster = 1, n = regions.length + 1; cluster < n; cluster++) {
+    envInfo = jelastic.env.control.GetEnvInfo('${settings.mainEnvName}-' + cluster, session);
+    if (envInfo.result != 0) {
+        return envInfo;
+    }
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + cluster, session, envInfo.nodes[0].id, toJSON([{"command": targetMasterIdCommand, "params": ""}]), false, "root");
+    if (resp.result != 0) { return resp; }
+    var targetMasterId = resp.responses[0].out;
+    
+    slave = cluster + 2;
+    if ( slave >= n ) {
+        slave = slave - 3;
+    }
+    
+    var resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[2].id, toJSON([{"command": getAnnounceIpCommand, "params": ""}]), false, "root");
+    if (resp.result != 0) { return resp; }
+    announceIp = resp.responses[0].out
+    var replicateCommand = "export REDISCLI_AUTH=$(cat /etc/redis.conf |grep '^requirepass'|awk '{print $2}'); redis-cli -h " + announceIp + " cluster replicate " + targetMasterId;
+    
+    resp = jelastic.env.control.ExecCmdById('${settings.mainEnvName}-' + slave, session, k[2].id, toJSON([{"command": replicateCommand, "params": ""}]), false, "root")
+    if (resp.result != 0) { return resp; }
+}
 
 return {
     result: 0
